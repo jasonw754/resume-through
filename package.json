@@ -1,0 +1,19 @@
+{
+  "name": "resume-through",
+  "version": "0.0.1",
+  "description": "Long running resumable streams using through2",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasonw754/resume-through.git"
+  },
+  "author": "Jason Williams",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jasonw754/resume-through/issues"
+  },
+  "homepage": "https://github.com/jasonw754/resume-through#readme"
+}
