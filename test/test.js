@@ -6,7 +6,9 @@ const Readable = require("readable-stream").Readable;
 const resumethrough = require('../lib/resume-through');
 
 describe("Resume Through", function () {
+
     describe("basic through2 behavior", function () {
+
         it("wraps through2.obj", function (done) {
             /* 
              * Make two streams and one transformation function.
@@ -49,7 +51,7 @@ describe("Resume Through", function () {
     
     describe("data chunk identity", function () {
 
-        it ("adds an identifier to the data chunk", function (done) {
+        it("adds an identifier to the data chunk", function (done) {
             /*
              * By default, resume-through will just add a property named '__resume_through' to the data chunk.
              * Expect the property to be there.
@@ -67,6 +69,43 @@ describe("Resume Through", function () {
             }))
 
             stream.push({});
+        });
+
+        it("uses uuid for the identifier by default", function (done) {
+            /*
+             * By default, resume-through will use uuid/v1 to make a unique identifying value for each
+             * data chunk that passes through.
+             * To test this, make a set of 3 objects that will get pushed on the stream one after another
+             * and then once they're all finished check to make sure they're all unique
+             */
+            const stream = Readable({objectMode: true});
+            stream._read = () => {};
+
+            let count = 0;
+            const rt = resumethrough(function (chunk, enc, cb) {
+                cb(null, chunk);
+            });
+
+            stream.pipe(rt).pipe(through2.obj(function (chunk, enc, cb) {
+                if (++count == inputs.length) {
+                    // all are done, compare them
+                    for (let i = 0; i < count; i++) {
+                        expect(inputs[i].__resume_through).to.have.property('uuid');
+                        for (let j = 0; j < count; j++) {
+                            if (i == j) continue;
+                            expect(inputs[i].__resume_through.uuid).not.to.equal(inputs[j].__resume_through.uuid);
+                        }
+                    }
+                    done();
+                }
+                cb();
+            }));
+
+            const inputs = [{},{},{}];
+
+            for (let i = 0; i < inputs.length; i++) {
+                stream.push(inputs[i]);
+            }
         });
     });
 });
