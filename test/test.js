@@ -3,7 +3,7 @@ var expect = require("chai").expect;
 const through2 = require("through2");
 const Readable = require("readable-stream").Readable;
 
-const resumethrough = require('../lib/resume-through');
+const resumethrough = require('../index');
 
 describe("Resume Through", function () {
 
@@ -59,8 +59,8 @@ describe("Resume Through", function () {
 
             stream.pipe(rt(function (chunk, enc, cb) {
                 expect(chunk).to.have.property('__resume_through');
-                expect(chunk.__resume_through).to.have.property('getOptions');
-                expect(chunk.__resume_through.getOptions()).to.have.property('foo');
+                expect(chunk.__resume_through).to.have.property('_options');
+                expect(chunk.__resume_through._options).to.have.property('foo');
                 done();
                 cb();
             }));
@@ -128,11 +128,10 @@ describe("Resume Through", function () {
             }
         });
 
-        it("allows the developer to provide an identifier implementation", function (done) {
+        it("allows the developer to provide an identifier generator", function (done) {
             /**
              * Resume Through will allow options and one option should be to allow the developer
-             * to provide an implementation for the identifier, in case their data chunks are
-             * already have a unique identifier.
+             * to provide an implementation for the identifier.
              */
             const stream = Readable({objectMode: true});
             stream._read = () => {};
@@ -150,6 +149,27 @@ describe("Resume Through", function () {
             }));
 
             stream.push({});
+        });
+
+        it("allows the developer to provide the name of an existing field for the identifier", function (done) {
+            /**
+             * If the developer already has a unique field on the data chunk, it can be used
+             * as the id by providing the field name for the identifier config option.
+             */
+            const stream = Readable({objectMode: true});
+            stream._read = () => {};
+
+            const rt = resumethrough({
+                identifier: 'id'
+            })
+
+            stream.pipe(rt(function(chunk, enc, cb) {
+                expect(chunk.__resume_through.id).to.equal(chunk.id);
+                done();
+                cb();
+            }))
+
+            stream.push({id: 123});
         })
     });
 });
