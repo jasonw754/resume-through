@@ -10,7 +10,7 @@ describe("Resume Through", function () {
     describe("basic through2 behavior", function () {
 
         it("wraps through2.obj", function (done) {
-            /* 
+            /**
              * Make two streams and one transformation function.
              * Pipe the transformation onto stream 1 by just using through2.
              * Pipe the same transformation onto stream 2 using the resume-through wrapper.
@@ -48,11 +48,31 @@ describe("Resume Through", function () {
             stream1.push({x: 5});
         });
     });
+
+    describe("configurable options", function () {
+
+        it("allows options to be passed", function(done) {
+            const stream = Readable({objectMode: true});
+            stream._read = () => {};
+            
+            const rt = resumethrough({foo: "bar"})
+
+            stream.pipe(rt(function (chunk, enc, cb) {
+                expect(chunk).to.have.property('__resume_through');
+                expect(chunk.__resume_through).to.have.property('getOptions');
+                expect(chunk.__resume_through.getOptions()).to.have.property('foo');
+                done();
+                cb();
+            }));
+
+            stream.push({});
+        })
+    })
     
     describe("data chunk identity", function () {
 
         it("adds an identifier to the data chunk", function (done) {
-            /*
+            /**
              * By default, resume-through will just add a property named '__resume_through' to the data chunk.
              * Expect the property to be there.
              */
@@ -72,7 +92,7 @@ describe("Resume Through", function () {
         });
 
         it("uses uuid for the identifier by default", function (done) {
-            /*
+            /**
              * By default, resume-through will use uuid/v1 to make a unique identifying value for each
              * data chunk that passes through.
              * To test this, make a set of 3 objects that will get pushed on the stream one after another
@@ -90,10 +110,10 @@ describe("Resume Through", function () {
                 if (++count == inputs.length) {
                     // all are done, compare them
                     for (let i = 0; i < count; i++) {
-                        expect(inputs[i].__resume_through).to.have.property('uuid');
+                        expect(inputs[i].__resume_through).to.have.property('id');
                         for (let j = 0; j < count; j++) {
                             if (i == j) continue;
-                            expect(inputs[i].__resume_through.uuid).not.to.equal(inputs[j].__resume_through.uuid);
+                            expect(inputs[i].__resume_through.id).not.to.equal(inputs[j].__resume_through.id);
                         }
                     }
                     done();
@@ -107,5 +127,29 @@ describe("Resume Through", function () {
                 stream.push(inputs[i]);
             }
         });
+
+        it("allows the developer to provide an identifier implementation", function (done) {
+            /**
+             * Resume Through will allow options and one option should be to allow the developer
+             * to provide an implementation for the identifier, in case their data chunks are
+             * already have a unique identifier.
+             */
+            const stream = Readable({objectMode: true});
+            stream._read = () => {};
+            
+            const rt = resumethrough({
+                identifier: function() {
+                    return 'A';
+                }
+            });
+
+            stream.pipe(rt(function(chunk, enc, cb) {
+                expect(chunk.__resume_through.id).to.equal('A');
+                done();
+                cb();
+            }));
+
+            stream.push({});
+        })
     });
 });
