@@ -2,6 +2,7 @@ var expect = require("chai").expect;
 
 const through2 = require("through2");
 const Readable = require("readable-stream").Readable;
+const miss = require('mississippi');
 
 const resumethrough = require('../index');
 
@@ -161,15 +162,42 @@ describe("Resume Through", function () {
 
             const rt = resumethrough({
                 identifier: 'id'
-            })
+            });
 
             stream.pipe(rt(function(chunk, enc, cb) {
                 expect(chunk.__resume_through.id).to.equal(chunk.id);
                 done();
                 cb();
-            }))
+            }));
 
             stream.push({id: 123});
         })
+    });
+
+    describe("pipeline metadata", function () {
+
+        it("can identify each stream in a pipeline", function (done) {
+            /**
+             * In order to establish pipeline metadata, each wrapped stream needs to have an identity.
+             * Best way to do this is have the developer provide a name for the stream as they wrap it.
+             */
+            const stream = Readable({objectMode: true});
+            stream._read = () => {};
+
+            const rt = resumethrough();
+            
+            stream
+                .pipe(rt('test', function (chunk, enc, cb) {
+                    cb(null, chunk);
+                }))
+                .pipe(rt('confirm', function (chunk, enc, cb) {
+                    expect(chunk.__resume_through).to.have.property('history');
+                    expect(chunk.__resume_through.history).to.include('test');
+                    cb();
+                    done();
+                }));
+
+            stream.push({});
+        });
     });
 });
