@@ -174,30 +174,39 @@ describe("Resume Through", function () {
         })
     });
 
-    describe("pipeline metadata", function () {
+    describe("pipeline structure", function () {
 
-        it("can identify each stream in a pipeline", function (done) {
-            /**
-             * In order to establish pipeline metadata, each wrapped stream needs to have an identity.
-             * Best way to do this is have the developer provide a name for the stream as they wrap it.
-             */
-            const stream = Readable({objectMode: true});
-            stream._read = () => {};
-
-            const rt = resumethrough();
-            
-            stream
-                .pipe(rt('test', function (chunk, enc, cb) {
-                    cb(null, chunk);
-                }))
-                .pipe(rt('confirm', function (chunk, enc, cb) {
-                    expect(chunk.__resume_through).to.have.property('history');
-                    expect(chunk.__resume_through.history).to.include('test');
-                    cb();
-                    done();
-                }));
-
-            stream.push({});
+        it ("will return a pipeline when multiple streams are passed", function (done) {
+            startWith({}).pipe(
+                resumethrough(
+                    through2.obj(function (chunk, enc, cb) {
+                        chunk.a = 1;
+                        cb(null, chunk);
+                    }),
+                    through2.obj(function (chunk, enc, cb) {
+                        chunk.b = 2;
+                        cb(null, chunk);
+                    }),
+                    through2.obj(function (chunk, enc, cb) {
+                        chunk.c = 3;
+                        cb(null, chunk);
+                    })
+                )
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                expect(chunk).to.have.property('a');
+                expect(chunk).to.have.property('b');
+                expect(chunk).to.have.property('c');
+                cb();
+                done();
+            }));
         });
     });
 });
+
+function startWith(data) {
+    return miss.from.obj(function (size, next) {
+        let chunk = data;
+        data = null;
+        next(null, chunk);
+    });
+}
