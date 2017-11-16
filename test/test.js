@@ -174,9 +174,9 @@ describe("Resume Through", function () {
         })
     });
 
-    describe("pipeline structure", function () {
+    describe("pipeline structure & metadata", function () {
 
-        it ("will return a pipeline when multiple streams are passed", function (done) {
+        it("will return a pipeline when multiple streams are passed", function (done) {
             startWith({}).pipe(
                 resumethrough(
                     through2.obj(function (chunk, enc, cb) {
@@ -200,6 +200,31 @@ describe("Resume Through", function () {
                 done();
             }));
         });
+
+        it("will return a pipeline when multiple transform functions are passed", function (done) {
+            startWith({}).pipe(
+                resumethrough(
+                    function (chunk, enc, cb) {
+                        chunk.a = 1;
+                        cb(null, chunk);
+                    },
+                    function (chunk, enc, cb) {
+                        chunk.b = 2;
+                        cb(null, chunk);
+                    },
+                    function (chunk, enc, cb) {
+                        chunk.c = 3;
+                        cb(null, chunk);
+                    }
+                )
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                expect(chunk).to.have.property('a');
+                expect(chunk).to.have.property('b');
+                expect(chunk).to.have.property('c');
+                cb();
+                done();
+            }));
+        })
     });
 });
 

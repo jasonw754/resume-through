@@ -56,8 +56,7 @@ function wrap(options, ...transforms) {
     
     function wrapTransform(transform) {
         // if it's already wrapped, unwrap so we can rewrap
-        // ** optimize this redundancy **
-        if (typeof transform === 'object' && transform.constructor.name == 'DestroyableTransform')
+        if (typeof transform === 'object' && transform._transform)
             transform = transform._transform;
         const wrapper = function (chunk, enc, cb) {
             if (!chunk.__resume_through) {
