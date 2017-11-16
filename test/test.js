@@ -184,10 +184,12 @@ describe("Resume Through", function () {
                         cb(null, chunk);
                     }),
                     through2.obj(function (chunk, enc, cb) {
+                        expect(chunk).to.have.property('a');
                         chunk.b = 2;
                         cb(null, chunk);
                     }),
                     through2.obj(function (chunk, enc, cb) {
+                        expect(chunk).to.have.property('b');
                         chunk.c = 3;
                         cb(null, chunk);
                     })
@@ -209,10 +211,12 @@ describe("Resume Through", function () {
                         cb(null, chunk);
                     },
                     function (chunk, enc, cb) {
+                        expect(chunk).to.have.property('a');
                         chunk.b = 2;
                         cb(null, chunk);
                     },
                     function (chunk, enc, cb) {
+                        expect(chunk).to.have.property('b');
                         chunk.c = 3;
                         cb(null, chunk);
                     }
@@ -221,6 +225,35 @@ describe("Resume Through", function () {
                 expect(chunk).to.have.property('a');
                 expect(chunk).to.have.property('b');
                 expect(chunk).to.have.property('c');
+                cb();
+                done();
+            }));
+        });
+
+        it("will generate identity for each stream and add history to the chunk", function (done) {
+            startWith({}).pipe(
+                resumethrough(
+                    function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    },
+                    function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    },
+                    function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    }
+                )
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                expect(chunk.__resume_through).to.have.property('history');
+                expect(chunk.__resume_through.history.length).to.eq(3);
+                let history = chunk.__resume_through.history;
+                for (let i = 0; i < history.length; i++) {
+                    for (let j = 0; j < history.length; j++) {
+                        if (i != j) {
+                            expect(history[i]).not.to.eq(history[j]);
+                        }
+                    }
+                }
                 cb();
                 done();
             }));

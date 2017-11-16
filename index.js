@@ -51,18 +51,43 @@ function wrap(options, ...transforms) {
     }
 
     function wrapPipeline(...transforms) {
-        return miss.pipeline.obj(transforms.map(wrapTransform));
+        let increment = 0;
+        function nameMe() {
+            return 'transform' + increment++;
+        }
+
+        const pipeline = miss.pipeline.obj(transforms.map(wrapTransform));
+
+        (function startInspection(inspector) {
+            return miss.from.obj(function (size, next) {
+                let chunk = inspector;
+                inspector = null;
+                next(null, chunk);
+            });
+        })({__resume_through_inspector: true, nameMe: nameMe}).pipe(pipeline);
+
+        return pipeline;
     }
     
     function wrapTransform(transform) {
         // if it's already wrapped, unwrap so we can rewrap
         if (typeof transform === 'object' && transform._transform)
             transform = transform._transform;
+
+        // define an empty name in the closure
+        let name = '';
+
         const wrapper = function (chunk, enc, cb) {
+            // watch for the pipeline inspector and use it to identify this transform
+            if (chunk.__resume_through_inspector) {
+                name = chunk.nameMe();
+                transform(chunk, enc, cb);
+            }
+
             if (!chunk.__resume_through) {
                 chunk.__resume_through = new ResumeThrough(options, chunk);
             }
-            let ticket = chunk.__resume_through;
+            chunk.__resume_through.history.push(name);
             transform(chunk, enc, cb);
         }
     
