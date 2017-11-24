@@ -276,13 +276,13 @@ describe("Resume Through", function () {
             
             startWith({}).pipe(
                 rt({
-                    "transform1" : function (chunk, enc, cb) {
+                    "b1" : function (chunk, enc, cb) {
                         cb(null, chunk);
                     },
-                    "transform2" : function (chunk, enc, cb) {
+                    "b2" : function (chunk, enc, cb) {
                         cb(null, chunk);
                     },
-                    "transform3" : function (chunk, enc, cb) {
+                    "b3" : function (chunk, enc, cb) {
                         cb(null, chunk);
                     }
                 })
@@ -292,7 +292,7 @@ describe("Resume Through", function () {
                     expect(chunk.__resume_through.history.length).to.eq(3);
                     let history = chunk.__resume_through.history;
                     for (let i = 0; i < history.length; i++) {
-                        expect(chunk.__resume_through.history[i]).to.eq("transform" + (i + 1));
+                        expect(chunk.__resume_through.history[i]).to.eq("b" + (i + 1));
                     }
                     cb();
                     done();
