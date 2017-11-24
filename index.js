@@ -31,12 +31,12 @@ function wrap(options, ...transforms) {
         // only options were passed, no transforms
         // return a reusable function that will wrap either a pipeline or a single transform
         return function (...transforms) {
-            if (typeof name === 'function') {
-                transforms.unshift(name);
-                name = undefined;
-            }
             if (transforms.length == 1) {
-                return wrapTransform(transforms[0]);
+                if (typeof transforms[0] === 'function') {
+                    return wrapTransform(transforms[0]);
+                } else if (typeof transforms[0] === 'object') {
+                    return wrapPipeline(transforms[0]);
+                }
             } else if (transforms.length > 1) {
                 return wrapPipeline(...transforms);
             }
@@ -51,9 +51,23 @@ function wrap(options, ...transforms) {
     }
 
     function wrapPipeline(...transforms) {
+        if (transforms.length == 1) {
+            var names = [];
+            var values = [];
+            for (let name in transforms[0]) {
+                names.push(name);
+                values.push(transforms[0][name]);
+            }
+            transforms = values;
+        }
+        
         let increment = 0;
         function nameMe() {
-            return 'transform' + increment++;
+            if (names) {
+                return names[increment++];
+            } else {
+                return 'transform' + increment++;
+            }
         }
 
         const pipeline = miss.pipeline.obj(transforms.map(wrapTransform));
@@ -74,21 +88,20 @@ function wrap(options, ...transforms) {
         if (typeof transform === 'object' && transform._transform)
             transform = transform._transform;
 
-        // define an empty name in the closure
-        let name = '';
-
         const wrapper = function (chunk, enc, cb) {
             // watch for the pipeline inspector and use it to identify this transform
             if (chunk.__resume_through_inspector) {
-                name = chunk.nameMe();
+                if (this.__resume_through_name == undefined) {
+                    this.__resume_through_name = chunk.nameMe();
+                }
+                cb(null, chunk);
+            } else {
+                if (!chunk.__resume_through) {
+                    chunk.__resume_through = new ResumeThrough(options, chunk);
+                }
+                chunk.__resume_through.history.push(this.__resume_through_name);
                 transform(chunk, enc, cb);
             }
-
-            if (!chunk.__resume_through) {
-                chunk.__resume_through = new ResumeThrough(options, chunk);
-            }
-            chunk.__resume_through.history.push(name);
-            transform(chunk, enc, cb);
         }
     
         return through2.obj(wrapper);
