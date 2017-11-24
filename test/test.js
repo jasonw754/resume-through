@@ -269,7 +269,7 @@ describe("Resume Through", function () {
                     cb();
                 }
             }));
-        })
+        });
 
         it("lets the developer provide a name for each stream", function (done) {
             let rt = resumethrough();
@@ -300,7 +300,52 @@ describe("Resume Through", function () {
                     cb();
                 }
             }));
-        })
+        });
+    });
+
+    describe("resumable stream behavior", function () {
+        it("skips transforms if the data has a previous state showing it's already been processed", function (done) {
+            let rt = resumethrough();
+
+            startWith({
+                __resume_through: {
+                    history: [
+                        "a1",
+                        "a2"
+                    ]
+                },
+                value: 2
+            }).pipe(
+                rt({
+                    "a1": function (chunk, enc, cb) {
+                        chunk.value += 2;
+                        cb(null, chunk);
+                    },
+                    "a2": function (chunk, enc, cb) {
+                        chunk.value += 2;
+                        cb(null, chunk);
+                    },
+                    "a3": function (chunk, enc, cb) {
+                        chunk.value += 2;
+                        cb(null, chunk);
+                    }
+                })
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                if (!chunk.__resume_through_inspector) {
+                    expect(chunk.value).to.eq(4);
+                    expect(chunk.__resume_through).to.have.property('history');
+                    expect(chunk.__resume_through.history.length).to.eq(3);
+                    let history = chunk.__resume_through.history;
+                    for (let i = 0; i < history.length; i++) {
+                        expect(chunk.__resume_through.history[i]).to.eq("a" + (i + 1));
+                    }
+                    cb();
+                    done();
+                } else {
+                    cb();
+                }
+            }));
+        });
     });
 });
 

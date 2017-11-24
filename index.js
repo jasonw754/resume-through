@@ -98,6 +98,12 @@ function wrap(options, ...transforms) {
             } else {
                 if (!chunk.__resume_through) {
                     chunk.__resume_through = new ResumeThrough(options, chunk);
+                } else {
+                    // check if the data chunk has already been through this transform
+                    if (chunk.__resume_through.history.includes(this.__resume_through_name)) {
+                        cb(null, chunk);
+                        return;
+                    }
                 }
                 chunk.__resume_through.history.push(this.__resume_through_name);
                 transform(chunk, enc, cb);
