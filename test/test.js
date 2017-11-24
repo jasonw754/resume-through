@@ -195,15 +195,11 @@ describe("Resume Through", function () {
                     })
                 )
             ).pipe(miss.to.obj(function(chunk, enc, cb) {
-                if (!chunk.__resume_through_inspector) {
-                    expect(chunk).to.have.property('a');
-                    expect(chunk).to.have.property('b');
-                    expect(chunk).to.have.property('c');
-                    cb();
-                    done();
-                } else {
-                    cb();
-                }
+                expect(chunk).to.have.property('a');
+                expect(chunk).to.have.property('b');
+                expect(chunk).to.have.property('c');
+                cb();
+                done();
             }));
         });
 
@@ -226,15 +222,11 @@ describe("Resume Through", function () {
                     }
                 )
             ).pipe(miss.to.obj(function(chunk, enc, cb) {
-                if (!chunk.__resume_through_inspector) {
-                    expect(chunk).to.have.property('a');
-                    expect(chunk).to.have.property('b');
-                    expect(chunk).to.have.property('c');
-                    cb();
-                    done();
-                } else {
-                    cb();
-                }
+                expect(chunk).to.have.property('a');
+                expect(chunk).to.have.property('b');
+                expect(chunk).to.have.property('c');
+                cb();
+                done();
             }));
         });
 
@@ -252,22 +244,18 @@ describe("Resume Through", function () {
                     }
                 )
             ).pipe(miss.to.obj(function(chunk, enc, cb) {
-                if (!chunk.__resume_through_inspector) {
-                    expect(chunk.__resume_through).to.have.property('history');
-                    expect(chunk.__resume_through.history.length).to.eq(3);
-                    let history = chunk.__resume_through.history;
-                    for (let i = 0; i < history.length; i++) {
-                        for (let j = 0; j < history.length; j++) {
-                            if (i != j) {
-                                expect(history[i]).not.to.eq(history[j]);
-                            }
+                expect(chunk.__resume_through).to.have.property('history');
+                expect(chunk.__resume_through.history.length).to.eq(3);
+                let history = chunk.__resume_through.history;
+                for (let i = 0; i < history.length; i++) {
+                    for (let j = 0; j < history.length; j++) {
+                        if (i != j) {
+                            expect(history[i]).not.to.eq(history[j]);
                         }
                     }
-                    cb();
-                    done();
-                } else {
-                    cb();
                 }
+                cb();
+                done();
             }));
         });
 
@@ -287,18 +275,37 @@ describe("Resume Through", function () {
                     }
                 })
             ).pipe(miss.to.obj(function(chunk, enc, cb) {
-                if (!chunk.__resume_through_inspector) {
-                    expect(chunk.__resume_through).to.have.property('history');
-                    expect(chunk.__resume_through.history.length).to.eq(3);
-                    let history = chunk.__resume_through.history;
-                    for (let i = 0; i < history.length; i++) {
-                        expect(chunk.__resume_through.history[i]).to.eq("b" + (i + 1));
-                    }
-                    cb();
-                    done();
-                } else {
-                    cb();
+                expect(chunk.__resume_through).to.have.property('history');
+                expect(chunk.__resume_through.history.length).to.eq(3);
+                let history = chunk.__resume_through.history;
+                for (let i = 0; i < history.length; i++) {
+                    expect(chunk.__resume_through.history[i]).to.eq("b" + (i + 1));
                 }
+                cb();
+                done();
+            }));
+        });
+
+        it("suppresses the inspector chunk from the end of the pipeline", function (done) {
+            let rt = resumethrough();
+            
+            startWith({}).pipe(
+                rt({
+                    "b1" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    },
+                    "b2" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    },
+                    "b3" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    }
+                })
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                if (chunk.__resume_through_inspector) {
+                    expect.fail();
+                }
+                done();
             }));
         });
     });
@@ -331,19 +338,15 @@ describe("Resume Through", function () {
                     }
                 })
             ).pipe(miss.to.obj(function(chunk, enc, cb) {
-                if (!chunk.__resume_through_inspector) {
-                    expect(chunk.value).to.eq(4);
-                    expect(chunk.__resume_through).to.have.property('history');
-                    expect(chunk.__resume_through.history.length).to.eq(3);
-                    let history = chunk.__resume_through.history;
-                    for (let i = 0; i < history.length; i++) {
-                        expect(chunk.__resume_through.history[i]).to.eq("a" + (i + 1));
-                    }
-                    cb();
-                    done();
-                } else {
-                    cb();
+                expect(chunk.value).to.eq(4);
+                expect(chunk.__resume_through).to.have.property('history');
+                expect(chunk.__resume_through.history.length).to.eq(3);
+                let history = chunk.__resume_through.history;
+                for (let i = 0; i < history.length; i++) {
+                    expect(chunk.__resume_through.history[i]).to.eq("a" + (i + 1));
                 }
+                cb();
+                done();
             }));
         });
     });

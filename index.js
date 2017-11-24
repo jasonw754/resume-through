@@ -70,7 +70,16 @@ function wrap(options, ...transforms) {
             }
         }
 
-        const pipeline = miss.pipeline.obj(transforms.map(wrapTransform));
+        let wrappedTransforms = transforms.map(wrapTransform);
+        wrappedTransforms.push(through2.obj(function (chunk, enc, cb) {
+            if (chunk.__resume_through_inspector) {
+                cb(null, null);
+            } else {
+                cb(null, chunk);
+            }
+        }))
+
+        const pipeline = miss.pipeline.obj(wrappedTransforms);
 
         (function startInspection(inspector) {
             return miss.from.obj(function (size, next) {
