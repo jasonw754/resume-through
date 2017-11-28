@@ -1,6 +1,8 @@
 const through2 = require("through2");
 const uuid = require("uuid/v1");
 const miss = require("mississippi");
+const jsonfile = require("jsonfile");
+const fs = require("fs");
 
 const ResumeThrough = require("./lib/resume-through");
 
@@ -20,7 +22,32 @@ function resumethrough(options, ...transforms) {
 }
 
 const defaults = {
-    identifier: uuid
+    identifier: uuid,
+    saveState: function (data) {
+        if (!data.__resume_through.id) {
+            return;
+        }
+        if (!fs.existsSync('.resume-through')) {
+            fs.mkdirSync('.resume-through');
+        }
+        jsonfile.writeFile(
+            '.resume-through/' + data.__resume_through.id, 
+            data,
+            {
+                replacer: function (key, value) {
+                    if (key == '_chunk') {
+                        return undefined;
+                    }
+                    return value;
+                }
+            },
+            function (err) {
+                if (err) {
+                    console.error(err);
+                }
+            }
+        )
+    }
 }
 
 function wrap(options, ...transforms) {
@@ -118,8 +145,16 @@ function wrap(options, ...transforms) {
                 transform(chunk, enc, cb);
             }
         }
+
+        const wrapped = through2.obj(wrapper);
     
-        return through2.obj(wrapper);
+        wrapped.on('data', function (data) {
+            if (data.__resume_through && data.__resume_through._options) {
+                data.__resume_through._options.saveState(data);
+            }
+        });
+
+        return wrapped;
     }
 }
 

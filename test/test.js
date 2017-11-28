@@ -3,10 +3,16 @@ var expect = require("chai").expect;
 const through2 = require("through2");
 const Readable = require("readable-stream").Readable;
 const miss = require('mississippi');
+const fs = require('fs');
+const rimraf = require('rimraf');
 
 const resumethrough = require('../index');
 
 describe("Resume Through", function () {
+
+    afterEach(function () {
+        rimraf.sync('.resume-through');
+    })
 
     describe("basic through2 behavior", function () {
 
@@ -311,6 +317,7 @@ describe("Resume Through", function () {
     });
 
     describe("resumable stream behavior", function () {
+        
         it("skips transforms if the data has a previous state showing it's already been processed", function (done) {
             let rt = resumethrough();
 
@@ -349,6 +356,30 @@ describe("Resume Through", function () {
                 done();
             }));
         });
+
+        it("persists the stream state to disk by default", function (done) {
+            let rt = resumethrough();
+            
+            startWith({}).pipe(
+                rt({
+                    "b1" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                        expect(fs.existsSync('.resume-through/' + chunk.__resume_through.id)).to.be.true;
+                    },
+                    "b2" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    },
+                    "b3" : function (chunk, enc, cb) {
+                        cb(null, chunk);
+                    }
+                })
+            ).pipe(miss.to.obj(function(chunk, enc, cb) {
+                if (chunk.__resume_through_inspector) {
+                    expect.fail();
+                }
+                done();
+            }));
+        })
     });
 });
 
