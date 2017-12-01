@@ -52,7 +52,8 @@ const defaults = {
 
 function wrap(options, ...transforms) {
 
-    options = Object.assign(defaults, options);
+    let tmp = Object.assign({}, defaults);
+    options = Object.assign(tmp, options);
 
     if (transforms.length == 0) {
         // only options were passed, no transforms
